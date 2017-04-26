@@ -23,9 +23,9 @@ def feedparser_render(url, *args, **kwargs):
     
         {% feedparser_render 'http://localhost/sample.xml' renderer='CustomRenderer' template='foo/custom.html' expiration=3600 %}
     """
-    renderer_name = kwargs.get('renderer', settings.FEED_DEFAULT_RENDERER_ENGINE)
-    renderer_template = kwargs.get('template', None)
-    expiration = kwargs.get('expiration', 0)
+    renderer_name = kwargs.pop('renderer', settings.FEED_DEFAULT_RENDERER_ENGINE)
+    renderer_template = kwargs.pop('template', None)
+    expiration = kwargs.pop('expiration', 0)
     
     renderer = get_feed_renderer(settings.FEED_RENDER_ENGINES, renderer_name)
-    return renderer().render(url, template=renderer_template, expiration=expiration)
+    return renderer().render(url, template=renderer_template, expiration=expiration, **kwargs)

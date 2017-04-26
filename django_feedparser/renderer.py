@@ -27,15 +27,15 @@ class FeedBasicRenderer(object):
     _timeout = settings.FEED_TIMEOUT
     _bozo_accept = settings.FEED_BOZO_ACCEPT
     _safe = settings.FEED_SAFE_FETCHING
-    
+
     def __init__(self, *args, **kwargs):
         self.safe = kwargs.get('safe', self._safe)
         self.timeout = kwargs.get('timeout', self._timeout)
         self.bozo_accept = kwargs.get('bozo_accept', self._bozo_accept)
         self.default_template = kwargs.get('default_template', self._template)
-        
+
         self._feed = None
-    
+
     def fetch(self, url):
         """
         Get the feed content using 'requests'
@@ -47,11 +47,11 @@ class FeedBasicRenderer(object):
                 raise
             else:
                 return None
-        
+
         # Raise 404/500 error if any
         if r and not self.safe:
             r.raise_for_status()
-        
+
         return r.text
 
     def parse(self, content):
@@ -69,9 +69,9 @@ class FeedBasicRenderer(object):
         """
         if content is None:
             return None
-        
+
         feed = feedparser.parse(content)
-        
+
         # When feed is malformed
         if feed['bozo']:
             # keep track of the parsing error exception but as string 
@@ -110,7 +110,7 @@ class FeedBasicRenderer(object):
             'id': self._hash_url(url),
             'expire': str(expiration)
         })
-        
+
         # Get feed from cache if any
         feed = cache.get(cache_key)
         # Else fetch it
@@ -118,9 +118,9 @@ class FeedBasicRenderer(object):
             #print "No feed cache, have to fetch it"
             feed = self.fetch(url)
             cache.set(cache_key, feed, expiration)
-            
+
         return self.parse(feed)
-    
+
     def format_feed_content(self, feed):
         """
         Formatter to post-process parsed feed
@@ -129,24 +129,26 @@ class FeedBasicRenderer(object):
         feed. Custom renderer can implement its own formatter if needed.
         """
         return feed
-    
-    def get_context(self, url, expiration):
+
+    def get_context(self, url, expiration, **kwargs):
         """
         Build template context with formatted feed content
         """
         self._feed = self.get(url, expiration)
-        
-        return {
+
+        context = {
             self.feed_context_name: self.format_feed_content(self._feed),
         }
-    
-    def render(self, url, template=None, expiration=0):
+        context.update(**kwargs)
+        return context
+
+    def render(self, url, template=None, expiration=0, **kwargs):
         """
         Render feed template
         """
         template = template or self.default_template
-        
-        return render_to_string(template, self.get_context(url, expiration))
+
+        return render_to_string(template, self.get_context(url, expiration, **kwargs))
 
 
 class FeedJsonRenderer(FeedBasicRenderer):
@@ -162,5 +164,5 @@ class FeedJsonRenderer(FeedBasicRenderer):
         """
         if content is None:
             return None
-        
+
         return json.loads(content)
